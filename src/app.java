@@ -44,7 +44,7 @@ public final class app extends javax.swing.JFrame {
     @Override
     public void list() {
         
-        int q, i;
+        int dbColumnCount;
         
         String sql = "SELECT * FROM product";
         
@@ -54,7 +54,7 @@ public final class app extends javax.swing.JFrame {
             
             ResultSetMetaData stData = resultSet.getMetaData();
             
-            q = stData.getColumnCount();
+            dbColumnCount = stData.getColumnCount();
             
             DefaultTableModel recordTable = (DefaultTableModel)jTable1.getModel();
             recordTable.setRowCount(0);
@@ -62,7 +62,7 @@ public final class app extends javax.swing.JFrame {
             while(resultSet.next()) {
                 Vector columnData = new Vector();
             
-                for(i=1; i<q; i++) {
+                for(int i=1; i<dbColumnCount; i++) {
                     columnData.add(resultSet.getString("stock_code"));
                     columnData.add(resultSet.getString("stock_name"));
                     columnData.add(resultSet.getShort("stock_type"));
@@ -174,24 +174,86 @@ public final class app extends javax.swing.JFrame {
     
     public void copy() throws SQLException {
         
+        try{
+            DefaultTableModel recordTable = (DefaultTableModel)jTable1.getModel();
+            int selectedRows = jTable1.getSelectedRow();
+
+            String stock_code = recordTable.getValueAt(selectedRows, 0).toString();
+
+            copyItem = JOptionPane.showInputDialog(null, "Kopyanın Stok Kodu?");
+
+            String sql = "INSERT INTO product (stock_code, stock_name, stock_type, unit, barcode, VAT_type, creation_date, description)"
+                    + "SELECT ?, stock_name, stock_type, unit, barcode, VAT_type, creation_date, description FROM product WHERE stock_code = ?";
+
+            statement = dbHelper.getConnection().prepareStatement(sql);
+
+            statement.setString(1, copyItem);
+            statement.setString(2, stock_code);
+
+            statement.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Kopyalama İşlemi Başarılı");
+        } catch (SQLException exception) {
+            JOptionPane.showMessageDialog(this, "Bu Stok Kodu Zaten Kayıtlı");
+        }
+        
+    }
+    
+    public void search(String searchText) {
+        int dbColumnCount;
+        
+        String sql = "SELECT * FROM product WHERE stock_code LIKE '"+searchText+"%'";
+        
+        try {
+            statement = dbHelper.getConnection().prepareStatement(sql);
+            resultSet = statement.executeQuery();
+            
+            ResultSetMetaData stData = resultSet.getMetaData();
+            
+            dbColumnCount = stData.getColumnCount();
+            
+            DefaultTableModel recordTable = (DefaultTableModel)jTable1.getModel();
+            recordTable.setRowCount(0);
+            
+            while(resultSet.next()) {
+                Vector columnData = new Vector();
+            
+                for(int i=1; i<dbColumnCount; i++) {
+                    columnData.add(resultSet.getString("stock_code"));
+                    columnData.add(resultSet.getString("stock_name"));
+                    columnData.add(resultSet.getShort("stock_type"));
+                    columnData.add(resultSet.getString("unit"));
+                    columnData.add(resultSet.getString("barcode"));
+                    columnData.add(resultSet.getString("VAT_type"));
+                    String date[] = resultSet.getString("creation_date").split(" ");
+                    columnData.add(date[0]);
+                    columnData.add(resultSet.getString("description"));
+                }
+                recordTable.addRow(columnData);
+            } 
+        } catch (SQLException ex) {
+            Logger.getLogger(app.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public void deleteAll() throws SQLException {
         DefaultTableModel recordTable = (DefaultTableModel)jTable1.getModel();
         int selectedRows = jTable1.getSelectedRow();
         
-        String stock_code = recordTable.getValueAt(selectedRows, 0).toString();
+        int dialog= JOptionPane.showConfirmDialog(null, "Tüm kayıları silmek istediğinize emin misiniz?", "Uyarı", JOptionPane.YES_NO_OPTION);
         
-        copyItem = JOptionPane.showInputDialog(null, "Kopyanın Stok Kodu?");
-        
-        String sql = "INSERT INTO product (stock_code, stock_name, stock_type, unit, barcode, VAT_type, creation_date, description)"
-                + "SELECT ?, stock_name, stock_type, unit, barcode, VAT_type, creation_date, description FROM product WHERE stock_code = ?";
-        
-        statement = dbHelper.getConnection().prepareStatement(sql);
-        
-        statement.setString(1, copyItem);
-        statement.setString(2, stock_code);
-        
-        statement.executeUpdate();
-        
-        JOptionPane.showMessageDialog(this, "Kopyalama İşlemi Başarılı");
+        if(dialog == JOptionPane.YES_OPTION) {
+            
+            String sql = "DELETE FROM product";
+            statement = dbHelper.getConnection().prepareStatement(sql);
+          
+            statement.executeUpdate();
+            
+            JOptionPane.showMessageDialog(this, "Silme İşlemi Başarılı");
+        }
+        else {
+            JOptionPane.getRootFrame().dispose();
+        }
     }
     
     public void clean() {
@@ -244,6 +306,7 @@ public final class app extends javax.swing.JFrame {
         update_button = new javax.swing.JButton();
         copy_button = new javax.swing.JButton();
         clean_button = new javax.swing.JButton();
+        deleteAll_button = new javax.swing.JButton();
         hideButtonPanel = new javax.swing.JPanel();
         down_button = new javax.swing.JButton();
 
@@ -358,6 +421,7 @@ public final class app extends javax.swing.JFrame {
 
         tablePanel.setBackground(new java.awt.Color(156, 156, 156));
 
+        jTable1.setAutoCreateRowSorter(true);
         jTable1.setBackground(new java.awt.Color(226, 229, 222));
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -472,6 +536,21 @@ public final class app extends javax.swing.JFrame {
             }
         });
 
+        deleteAll_button.setBackground(new java.awt.Color(167, 167, 167));
+        deleteAll_button.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        deleteAll_button.setForeground(new java.awt.Color(51, 51, 51));
+        deleteAll_button.setText("Tüm Kayıtları Sil");
+        deleteAll_button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                deleteAll_buttonMouseClicked(evt);
+            }
+        });
+        deleteAll_button.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                deleteAll_buttonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout buttonPanelLayout = new javax.swing.GroupLayout(buttonPanel);
         buttonPanel.setLayout(buttonPanelLayout);
         buttonPanelLayout.setHorizontalGroup(
@@ -483,13 +562,14 @@ public final class app extends javax.swing.JFrame {
                     .addComponent(delete_button, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(update_button, javax.swing.GroupLayout.DEFAULT_SIZE, 280, Short.MAX_VALUE)
                     .addComponent(copy_button, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(clean_button, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(clean_button, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(deleteAll_button, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap(31, Short.MAX_VALUE))
         );
         buttonPanelLayout.setVerticalGroup(
             buttonPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(buttonPanelLayout.createSequentialGroup()
-                .addGap(91, 91, 91)
+                .addGap(62, 62, 62)
                 .addComponent(add_button, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(delete_button, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -498,8 +578,10 @@ public final class app extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addComponent(copy_button, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
+                .addComponent(deleteAll_button, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
                 .addComponent(clean_button, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(98, Short.MAX_VALUE))
+                .addContainerGap(74, Short.MAX_VALUE))
         );
 
         hideButtonPanel.setBackground(new java.awt.Color(156, 156, 156));
@@ -677,27 +759,24 @@ public final class app extends javax.swing.JFrame {
     private void copy_buttonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_copy_buttonMouseClicked
         if (tf_stock_code.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Kopyalanacak Kaydı Seçiniz");
-        }
-        
+        }    
         else {
             try {
                 copy();
                 list();
                 clean();
             } catch (SQLException ex) {
-                Logger.getLogger(app.class.getName()).log(Level.SEVERE, null, ex);
+                JOptionPane.showMessageDialog(null, "Bu Stok Kodu Zaten Kayıtlı");
             }
         }      
     }//GEN-LAST:event_copy_buttonMouseClicked
 
     private void clean_buttonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_clean_buttonMouseClicked
-        
         clean();
         list();
     }//GEN-LAST:event_clean_buttonMouseClicked
 
     private void down_buttonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_down_buttonMouseClicked
-        
         buttonPanel.setVisible(true);
         dataPanel.setVisible(true);
         up_button.setVisible(true);
@@ -705,7 +784,6 @@ public final class app extends javax.swing.JFrame {
     }//GEN-LAST:event_down_buttonMouseClicked
 
     private void up_buttonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_up_buttonMouseClicked
-
         buttonPanel.setVisible(false);
         dataPanel.setVisible(false);
         up_button.setVisible(false);
@@ -713,15 +791,10 @@ public final class app extends javax.swing.JFrame {
     }//GEN-LAST:event_up_buttonMouseClicked
 
     private void tf_search_barKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tf_search_barKeyReleased
-
-        DefaultTableModel model = (DefaultTableModel)jTable1.getModel();
-        TableRowSorter<DefaultTableModel> tr = new TableRowSorter<>(model);
-        jTable1.setRowSorter(tr);
-        tr.setRowFilter(RowFilter.regexFilter("^" + tf_search_bar.getText().trim(),0));
+        search(tf_search_bar.getText());
     }//GEN-LAST:event_tf_search_barKeyReleased
 
     private void jTable1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTable1MouseClicked
-
         try {
             DefaultTableModel recordTable = (DefaultTableModel)jTable1.getModel();
             int selectedRows = jTable1.getSelectedRow();
@@ -742,6 +815,19 @@ public final class app extends javax.swing.JFrame {
             Logger.getLogger(app.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jTable1MouseClicked
+
+    private void deleteAll_buttonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_deleteAll_buttonMouseClicked
+        try {
+            deleteAll();
+            list();
+        } catch (SQLException ex) {
+            Logger.getLogger(app.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_deleteAll_buttonMouseClicked
+
+    private void deleteAll_buttonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteAll_buttonActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_deleteAll_buttonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -787,6 +873,7 @@ public final class app extends javax.swing.JFrame {
     private javax.swing.JButton clean_button;
     private javax.swing.JButton copy_button;
     private javax.swing.JPanel dataPanel;
+    private javax.swing.JButton deleteAll_button;
     private javax.swing.JButton delete_button;
     private javax.swing.JButton down_button;
     private com.toedter.calendar.JDateChooser ftf_creation_date;
@@ -865,6 +952,23 @@ public final class app extends javax.swing.JFrame {
                 hideButtonPanel.setVisible(false);
             }
             
+        });
+        
+        popupMenu.add(menuItem);
+        
+        menuItem = new JMenuItem("Tüm Kayıtları Sil");
+        menuItem.getAccessibleContext().setAccessibleDescription("Tüm Kayıtları Sil");
+        
+        menuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    deleteAll();
+                    list();
+                } catch (SQLException ex) {
+                    Logger.getLogger(app.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
         });
         
         popupMenu.add(menuItem);
