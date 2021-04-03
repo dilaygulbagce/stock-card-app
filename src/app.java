@@ -16,9 +16,7 @@ import javax.swing.JFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
-import javax.swing.RowFilter;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 
 
 public final class app extends javax.swing.JFrame {
@@ -268,6 +266,8 @@ public final class app extends javax.swing.JFrame {
         ta_description.setText("");
         
         tf_stock_code.setEditable(true);
+        
+        tf_search_bar.setText("");
     }
     
     
@@ -311,6 +311,7 @@ public final class app extends javax.swing.JFrame {
         down_button = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Stok Kartları");
 
         jPanel1.setBackground(new java.awt.Color(156, 156, 156));
         jPanel1.setAlignmentX(0.0F);
@@ -545,11 +546,6 @@ public final class app extends javax.swing.JFrame {
                 deleteAll_buttonMouseClicked(evt);
             }
         });
-        deleteAll_button.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                deleteAll_buttonActionPerformed(evt);
-            }
-        });
 
         javax.swing.GroupLayout buttonPanelLayout = new javax.swing.GroupLayout(buttonPanel);
         buttonPanel.setLayout(buttonPanelLayout);
@@ -718,8 +714,8 @@ public final class app extends javax.swing.JFrame {
 
     private void update_buttonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_update_buttonMouseClicked
         if (tf_stock_code.getText().isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Stok Kodu Alanı Boş Bırakılamaz");
-        }
+            JOptionPane.showMessageDialog(null, "Güncellenecek Kaydı Seçiniz");
+        } 
         
         else if (tf_stock_name.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Stok Adı Alanı Boş Bırakılamaz");
@@ -824,10 +820,6 @@ public final class app extends javax.swing.JFrame {
             Logger.getLogger(app.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_deleteAll_buttonMouseClicked
-
-    private void deleteAll_buttonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteAll_buttonActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_deleteAll_buttonActionPerformed
 
     /**
      * @param args the command line arguments
